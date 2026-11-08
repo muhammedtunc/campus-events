@@ -1,0 +1,42 @@
+### All events
+GET http://localhost:3000/api/events
+
+### Search
+GET http://localhost:3000/api/events?q=game
+
+### One event
+GET http://localhost:3000/api/events/2
+
+### Event that does not exist
+GET http://localhost:3000/api/events/999
+
+### Create an event
+POST http://localhost:3000/api/events
+Content-Type: application/json
+
+{
+  "title": "Pierogi workshop",
+  "date": "2026-12-03T17:00",
+  "location": "Student kitchen",
+  "capacity": 15
+}
+
+### Invalid event
+POST http://localhost:3000/api/events
+Content-Type: application/json
+
+{ "title": "x", "date": "tomorrow", "capacity": -5 }
+
+### Update event 4
+PUT http://localhost:3000/api/events/4
+Content-Type: application/json
+
+{
+  "title": "Pierogi workshop",
+  "date": "2026-12-03T17:00",
+  "location": "Student kitchen",
+  "capacity": 20
+}
+
+### Delete event 4
+DELETE http://localhost:3000/api/events/4

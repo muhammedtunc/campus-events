@@ -6,5 +6,8 @@
   "scripts": {
     "dev": "node --watch hello.js",
     "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^5.3.0"
   }
 }
