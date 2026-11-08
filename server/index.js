@@ -32,14 +32,20 @@ let events = [
 let nextId = 4;
 
 function validateEvent(body) {
-  if (typeof body.title !== 'string' || body.title.trim().length < 3) {
-    return 'title must have at least 3 characters';
+  if (typeof body.title !== 'string' || body.title.trim().length < 3 || body.title.trim().length > 120) {
+    return 'title must have at least 3 characters and at most 120 characters.';
   }
-  if (typeof body.date !== 'string' || Number.isNaN(Date.parse(body.date))) {
-    return 'date must be a valid date, e.g. 2026-10-15T18:00';
+  if (typeof body.date !== 'string' || !isValidDate(body.date) || new Date(body.date) < new Date()) {
+    return 'date must be a valid date in the future, e.g. 2050-10-15T18:00';
   }
   if (!Number.isInteger(body.capacity) || body.capacity < 1) {
     return 'capacity must be a whole number greater than 0';
+  }
+  if(body.description && (typeof body.description !== 'string' || body.description.trim().length > 1000)) {
+    return 'description must be a string with at most 1000 characters.';
+  }
+  if(body.location && (typeof body.location !== 'string' || body.location.trim().length > 100)) {
+    return 'location must be a string with at most 100 characters.';
   }
   return null;
 }
@@ -55,11 +61,25 @@ function toEvent(id, body) {
   };
 }
 
+function isValidDate(dateString) {
+  const timestamp = Date.parse(dateString);
+  return !Number.isNaN(timestamp);
+}
+
 app.get('/api/events', (req, res) => {
   const q = String(req.query.q ?? '').toLowerCase();
-  const result = events
+  let result = events
     .filter((e) => e.title.toLowerCase().includes(q))
     .sort((a, b) => a.date.localeCompare(b.date));
+  // ?from=2026-11-01 returns only events on or after that date;
+  const from = isValidDate(req.query.from) ? new Date(req.query.from) : null;
+  if (from) {
+    result = result.filter((e) => new Date(e.date) >= from);
+  }
+  // ?sort=title sorts by title instead of by date.
+  if (req.query.sort === 'title') {
+    result.sort((a, b) => a.title.localeCompare(b.title));
+  }
   res.json(result);
 });
 
@@ -69,6 +89,23 @@ app.get('/api/events/:id', (req, res) => {
     return res.status(404).json({ error: 'Event not found' });
   }
   res.json(event);
+});
+
+app.get('/api/stats', (req, res) => {
+  const totalCount = events.length;
+  const totalCapacity = events.reduce((sum, e) => sum + e.capacity, 0);
+  const nextEvent = events.reduce((next, e) => {
+    if(new Date(e.date) > new Date()) return next; // ignore past events
+    if (!next || new Date(e.date) < new Date(next.date)) {
+      return e;
+    }
+  }, null);
+  const summary = {
+    count: totalCount,
+    totalCapacity: totalCapacity,
+    nextEvent: nextEvent,
+  };
+  return res.json(summary);      
 });
 
 app.post('/api/events', (req, res) => {
